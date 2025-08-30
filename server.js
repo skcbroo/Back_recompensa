@@ -21,15 +21,17 @@ const prisma = new PrismaClient();
 // ===== App =====
 const app = express();
 app.use(helmet());
-app.use(cors({
-  origin: [
-    "http://localhost:5173",                          // dev vite
-    "https://frontrecompensa-production.up.railway.app" // seu front deployado
-  ],
-  credentials: true,
-  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"],
-}));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173", 
+      "https://frontrecompensa-production.up.railway.app"
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.options("*", cors()); // responde preflight
 app.use(express.json({ limit: "4mb" }));
 
