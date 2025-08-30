@@ -143,17 +143,34 @@ console.log("👮 Worker de moderação iniciado (no mesmo processo)");
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 app.post("/auth/signup", async (req, res) => {
-  const { nome, email, senha } = req.body;
+  const { nomeCompleto, email, senha, telefone, cpf, dataNascimento, endereco } = req.body;
   try {
     const existente = await prisma.usuario.findUnique({ where: { email } });
     if (existente) return res.status(400).json({ erro: "Email já cadastrado" });
+
+    const cpfExistente = await prisma.usuario.findUnique({ where: { cpf } });
+    if (cpfExistente) return res.status(400).json({ erro: "CPF já cadastrado" });
+
     const senhaHash = await bcrypt.hash(senha, env.BCRYPT_ROUNDS);
-    const user = await prisma.usuario.create({ data: { nome, email, senhaHash } });
-    res.json({ id: user.id, email: user.email });
+    const user = await prisma.usuario.create({
+      data: {
+        nomeCompleto,
+        email,
+        senhaHash,
+        telefone,
+        cpf,
+        dataNascimento: new Date(dataNascimento),
+        endereco,
+        kycStatus: "PENDENTE",
+      },
+    });
+
+    res.json({ id: user.id, email: user.email, nome: user.nomeCompleto });
   } catch (e) {
     res.status(400).json({ erro: e.message });
   }
 });
+
 
 app.post("/auth/login", async (req, res) => {
   const { email, senha } = req.body;
