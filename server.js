@@ -256,5 +256,15 @@ app.get("/recompensas", async (req, res) => {
   })));
 });
 
+// rota raiz para teste rápido
+app.get("/", (_req, res) => {
+  res.json({
+    ok: true,
+    message: "🚀 Backend Recompensa ativo",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+
 // start
 app.listen(env.PORT, () => console.log(`🌐 HTTP on :${env.PORT}`));
