@@ -1,28 +1,3 @@
-// prisma/schema.prisma
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-model Usuario {
-  id             Int       @id @default(autoincrement())
-  nome           String
-  email          String    @unique
-  senhaHash      String
-  emailVerificado Boolean   @default(false)
-  kycStatus      String?   // ex.: "PENDENTE", "VERIFICADO"
-  reputacao      Int       @default(0)
-  criadoEm       DateTime  @default(now())
-  atualizadoEm   DateTime  @updatedAt
-
-  recompensas    Recompensa[]
-  habilitacoes   Habilitacao[]
-}
-
 model Recompensa {
   id             Int       @id @default(autoincrement())
   criadorId      Int
@@ -30,8 +5,8 @@ model Recompensa {
   descricao      String
   categoria      String?
   valorCentavos  Int
-  prazoISO       String?   // ex.: "P5D"
-  scope          String    // "BR" | "UF" | "MUNICIPIO" | "RAIO"
+  prazoISO       String?
+  scope          String
   uf             String?
   municipioIbge  String?
   latitude       Float?
@@ -44,39 +19,26 @@ model Recompensa {
   criador        Usuario   @relation(fields: [criadorId], references: [id])
   habilitacoes   Habilitacao[]
   entregas       Entrega[]
-  moderacoes     ModeracaoEvento[]
-}
 
-model Habilitacao {
-  id            Int       @id @default(autoincrement())
-  recompensaId  Int
-  usuarioId     Int
-  status        String    @default("PENDENTE") // PENDENTE | ACEITA | RECUSADA | CONCLUIDA
-  motivoRecusa  String?
-  criadoEm      DateTime  @default(now())
-
-  recompensa    Recompensa @relation(fields: [recompensaId], references: [id])
-  usuario       Usuario    @relation(fields: [usuarioId], references: [id])
-  entregas      Entrega[]
-}
-
-model Entrega {
-  id            Int       @id @default(autoincrement())
-  habilitacaoId Int
-  mensagem      String?
-  arquivos      Json?     // lista de uploads/provas
-  criadoEm      DateTime  @default(now())
-
-  habilitacao   Habilitacao @relation(fields: [habilitacaoId], references: [id])
+  // 👇 adiciona a relação nomeada
+  moderacoes     ModeracaoEvento[] @relation("RecompensaModeracoes")
 }
 
 model ModeracaoEvento {
-  id           Int      @id @default(autoincrement())
-  recursoTipo  String   // "Recompensa"
-  recursoId    Int
-  acao         String   // "APROVAR" | "REJEITAR" | "AJUSTAR"
+  id           Int       @id @default(autoincrement())
+
+  // 👇 cria a FK opcional para Recompensa + lado oposto da relação
+  recompensaId Int?
+  recompensa   Recompensa? @relation("RecompensaModeracoes", fields: [recompensaId], references: [id], onDelete: Cascade)
+
+  // pode manter campos “genéricos” se quiser (não atrapalham a relação)
+  recursoTipo  String?   // ex.: "Recompensa"
+  recursoId    Int?
+
+  acao         String    // "APROVAR" | "REJEITAR" | "AJUSTAR"
   motivo       String?
   reviewerId   Int?
-  criadoEm     DateTime @default(now())
-}
+  criadoEm     DateTime  @default(now())
 
+  @@index([recompensaId])
+}
