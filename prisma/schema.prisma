@@ -1,1 +1,82 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id             Int       @id @default(autoincrement())
+  nome           String
+  email          String    @unique
+  senhaHash      String
+  emailVerificado Boolean   @default(false)
+  kycStatus      String?   // ex.: "PENDENTE", "VERIFICADO"
+  reputacao      Int       @default(0)
+  criadoEm       DateTime  @default(now())
+  atualizadoEm   DateTime  @updatedAt
+
+  recompensas    Recompensa[]
+  habilitacoes   Habilitacao[]
+}
+
+model Recompensa {
+  id             Int       @id @default(autoincrement())
+  criadorId      Int
+  titulo         String
+  descricao      String
+  categoria      String?
+  valorCentavos  Int
+  prazoISO       String?   // ex.: "P5D"
+  scope          String    // "BR" | "UF" | "MUNICIPIO" | "RAIO"
+  uf             String?
+  municipioIbge  String?
+  latitude       Float?
+  longitude      Float?
+  raioMetros     Int?
+  status         String    @default("EM_REVISAO")
+  riskScore      Int?      @default(0)
+  criadoEm       DateTime  @default(now())
+
+  criador        Usuario   @relation(fields: [criadorId], references: [id])
+  habilitacoes   Habilitacao[]
+  entregas       Entrega[]
+  moderacoes     ModeracaoEvento[]
+}
+
+model Habilitacao {
+  id            Int       @id @default(autoincrement())
+  recompensaId  Int
+  usuarioId     Int
+  status        String    @default("PENDENTE") // PENDENTE | ACEITA | RECUSADA | CONCLUIDA
+  motivoRecusa  String?
+  criadoEm      DateTime  @default(now())
+
+  recompensa    Recompensa @relation(fields: [recompensaId], references: [id])
+  usuario       Usuario    @relation(fields: [usuarioId], references: [id])
+  entregas      Entrega[]
+}
+
+model Entrega {
+  id            Int       @id @default(autoincrement())
+  habilitacaoId Int
+  mensagem      String?
+  arquivos      Json?     // lista de uploads/provas
+  criadoEm      DateTime  @default(now())
+
+  habilitacao   Habilitacao @relation(fields: [habilitacaoId], references: [id])
+}
+
+model ModeracaoEvento {
+  id           Int      @id @default(autoincrement())
+  recursoTipo  String   // "Recompensa"
+  recursoId    Int
+  acao         String   // "APROVAR" | "REJEITAR" | "AJUSTAR"
+  motivo       String?
+  reviewerId   Int?
+  criadoEm     DateTime @default(now())
+}
 
