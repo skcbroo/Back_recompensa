@@ -1,6 +1,4 @@
 // server.js — backend único (Express + Prisma + BullMQ)
-// Rodar com: node server.js  (ou nodemon server.js)
-
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -44,9 +42,9 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   const R = 6371; // km
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat / 2) ** 2 +
-            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-            Math.sin(dLon / 2) ** 2;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -55,11 +53,11 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 const BANNED = [
   "matar", "assassinar", "sequestro", "drogas", "invadir conta", "hackear",
   "endereco residencial de", "cpf de", "chantagem", "espionar",
-  "criança", "pornografia", "explosivo", "arma", "branco/negro/gay"
+  "criança", "pornografia", "explosivo", "arma", "branco/negro/gay",
 ];
 const SENSITIVE = [
   "descobrir endereco", "seguir pessoa", "monitorar", "localizar pessoa",
-  "documentos pessoais", "senha", "codigo 2fa", "dados bancarios"
+  "documentos pessoais", "senha", "codigo 2fa", "dados bancarios",
 ];
 function evaluateText(text) {
   const t = String(text || "").toLowerCase();
@@ -75,7 +73,11 @@ function evaluateText(text) {
 // ===== BullMQ (fila + worker) =====
 const moderationQueue = new Queue("moderation", { connection: { url: env.REDIS_URL } });
 async function enqueueRecompensaModeration(recompensaId) {
-  await moderationQueue.add("recompensa", { recompensaId }, { attempts: 3, removeOnComplete: true, removeOnFail: true });
+  await moderationQueue.add(
+    "recompensa",
+    { recompensaId },
+    { attempts: 3, removeOnComplete: true, removeOnFail: true }
+  );
 }
 
 new Worker(
@@ -89,18 +91,48 @@ new Worker(
     const { score, flags } = evaluateText(fullText);
 
     if (flags.some((f) => f.startsWith("BANNED"))) {
-      await prisma.recompensa.update({ where: { id: r.id }, data: { status: "BANIDA", riskScore: score } });
-      await prisma.moderacaoEvento.create({ data: { recursoTipo: "Recompensa", recursoId: r.id, acao: "REJEITAR", motivo: flags.join(", ") } });
+      await prisma.recompensa.update({
+        where: { id: r.id },
+        data: { status: "BANIDA", riskScore: score },
+      });
+      await prisma.moderacaoEvento.create({
+        data: {
+          recompensaId: r.id,
+          recursoTipo: "Recompensa",
+          recursoId: r.id,
+          acao: "REJEITAR",
+          motivo: flags.join(", "),
+        },
+      });
       return;
     }
 
     if (score >= 40) {
-      await prisma.moderacaoEvento.create({ data: { recursoTipo: "Recompensa", recursoId: r.id, acao: "AJUSTAR", motivo: flags.join(", ") } });
+      await prisma.moderacaoEvento.create({
+        data: {
+          recompensaId: r.id,
+          recursoTipo: "Recompensa",
+          recursoId: r.id,
+          acao: "AJUSTAR",
+          motivo: flags.join(", "),
+        },
+      });
       return;
     }
 
-    await prisma.recompensa.update({ where: { id: r.id }, data: { status: "PUBLICADA", riskScore: score } });
-    await prisma.moderacaoEvento.create({ data: { recursoTipo: "Recompensa", recursoId: r.id, acao: "APROVAR", motivo: "auto" } });
+    await prisma.recompensa.update({
+      where: { id: r.id },
+      data: { status: "PUBLICADA", riskScore: score },
+    });
+    await prisma.moderacaoEvento.create({
+      data: {
+        recompensaId: r.id,
+        recursoTipo: "Recompensa",
+        recursoId: r.id,
+        acao: "APROVAR",
+        motivo: "auto",
+      },
+    });
   },
   { connection: { url: env.REDIS_URL } }
 );
@@ -108,10 +140,8 @@ new Worker(
 console.log("👮 Worker de moderação iniciado (no mesmo processo)");
 
 // ===== Rotas =====
-// Health
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
-// Auth
 app.post("/auth/signup", async (req, res) => {
   const { nome, email, senha } = req.body;
   try {
@@ -139,7 +169,7 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
-// Recompensas — criar
+// criar recompensa
 app.post("/recompensas", requireAuth, async (req, res) => {
   try {
     const {
@@ -166,8 +196,7 @@ app.post("/recompensas", requireAuth, async (req, res) => {
   }
 });
 
-// Recompensas — feed
-// GET /recompensas?scope=RAIO&lat=-23.5&lon=-46.6&raioKm=10&categoria=ACHADOS
+// feed
 app.get("/recompensas", async (req, res) => {
   const { scope, uf, municipioIbge, lat, lon, raioKm, categoria } = req.query;
 
@@ -185,32 +214,30 @@ app.get("/recompensas", async (req, res) => {
   if (scope === "MUNICIPIO" && municipioIbge) base = base.filter((r) => r.municipioIbge === municipioIbge);
 
   if (scope === "RAIO" && lat && lon && raioKm) {
-    const lat0 = parseFloat(lat),
-      lon0 = parseFloat(lon),
-      raio = parseFloat(raioKm);
+    const lat0 = parseFloat(lat);
+    const lon0 = parseFloat(lon);
+    const raio = parseFloat(raioKm);
     base = base.filter((r) => {
       if (r.latitude == null || r.longitude == null) return false;
       const d = haversineKm(lat0, lon0, r.latitude, r.longitude);
-      const lim = (r.raioMetros || 0) / 1000; // raio próprio da recompensa
+      const lim = (r.raioMetros || 0) / 1000;
       return d <= Math.max(raio, lim);
     });
   }
 
-  res.json(
-    base.map((r) => ({
-      id: r.id,
-      titulo: r.titulo,
-      categoria: r.categoria,
-      valorCentavos: r.valorCentavos,
-      scope: r.scope,
-      uf: r.uf,
-      municipioIbge: r.municipioIbge,
-      latitude: r.latitude,
-      longitude: r.longitude,
-      criadoEm: r.criadoEm,
-    }))
-  );
+  res.json(base.map((r) => ({
+    id: r.id,
+    titulo: r.titulo,
+    categoria: r.categoria,
+    valorCentavos: r.valorCentavos,
+    scope: r.scope,
+    uf: r.uf,
+    municipioIbge: r.municipioIbge,
+    latitude: r.latitude,
+    longitude: r.longitude,
+    criadoEm: r.criadoEm,
+  })));
 });
 
-// ===== Start =====
+// start
 app.listen(env.PORT, () => console.log(`🌐 HTTP on :${env.PORT}`));
