@@ -32,8 +32,10 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-app.use(cors());
+
+
 app.use(express.json({ limit: "4mb" }));
+
 
 // ===== Utils =====
 function requireAuth(req, res, next) {
