@@ -24,7 +24,7 @@ app.use(helmet());
 app.use(cors({
   origin: [
     "http://localhost:5173",                          // dev vite
-    "https://frontrecompensa2-production.up.railway.app" // seu front deployado
+    "https://frontrecompensa-production.up.railway.app" // seu front deployado
   ],
   credentials: true,
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
