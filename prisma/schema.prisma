@@ -9,19 +9,24 @@ datasource db {
 }
 
 model Usuario {
-  id             Int       @id @default(autoincrement())
-  nome           String
-  email          String    @unique
-  senhaHash      String
+  id              Int       @id @default(autoincrement())
+  nomeCompleto    String
+  email           String    @unique
+  senhaHash       String
+  telefone        String?
+  cpf             String    @unique
+  dataNascimento  DateTime
+  endereco        String?
   emailVerificado Boolean   @default(false)
-  kycStatus      String?
-  reputacao      Int       @default(0)
-  criadoEm       DateTime  @default(now())
-  atualizadoEm   DateTime  @updatedAt
+  kycStatus       String    @default("PENDENTE")
+  reputacao       Int       @default(0)
+  criadoEm        DateTime  @default(now())
+  atualizadoEm    DateTime  @updatedAt
 
-  recompensas    Recompensa[]
-  habilitacoes   Habilitacao[]
+  recompensas     Recompensa[]
+  habilitacoes    Habilitacao[]
 }
+
 
 model Recompensa {
   id             Int       @id @default(autoincrement())
