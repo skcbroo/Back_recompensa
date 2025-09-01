@@ -193,7 +193,15 @@ app.post("/auth/login", async (req, res) => {
     const ok = await bcrypt.compare(senha, user.senhaHash);
     if (!ok) return res.status(401).json({ erro: "Credenciais inválidas" });
     const token = jwt.sign({ sub: user.id }, env.JWT_SECRET, { expiresIn: "7d" });
-    res.json({ token, user: { id: user.id, email: user.email, nome: user.nome } });
+    res.json({
+  token,
+  user: {
+    id: user.id,
+    email: user.email,
+    nomeCompleto: user.nomeCompleto // ✅ agora o frontend vai receber corretamente
+  }
+});
+
   } catch (e) {
     res.status(401).json({ erro: e.message });
   }
